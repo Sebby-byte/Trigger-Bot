@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "pvptestclicker",
+  "version": "${version}",
+  "name": "PvP Test Clicker",
+  "description": "Developer tool: automatically clicks when another player is within a configurable range, for testing PvP mechanics in singleplayer or on private/allowlisted servers. Client side only.",
+  "authors": ["You"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.example.pvptestclicker.PvpTestClickerClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.1",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
