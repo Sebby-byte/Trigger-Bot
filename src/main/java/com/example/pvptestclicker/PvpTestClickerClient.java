@@ -19,6 +19,8 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -29,8 +31,8 @@ import net.fabricmc.loader.api.FabricLoader;
 /**
  * Developer tool for testing PvP mechanics (hit detection, reach, knockback, custom weapons).
  *
- * While enabled, it simulates a press of your Attack key (the left mouse click) whenever ANOTHER
- * PLAYER is within the detection range. It sends no attack commands of its own: the game handles
+ * While enabled, it simulates a press of your Attack key (the left mouse click) whenever your
+ * crosshair is on ANOTHER PLAYER who is within the detection range (so it never clicks on mobs). It sends no attack commands of its own: the game handles
  * the click exactly as if you had pressed the button, so whatever your crosshair is on is what
  * gets hit. It never turns your camera or picks targets for you.
  *
@@ -55,6 +57,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
     // config (persisted)
     private static float detectionRange = 4.0f;
     private static boolean requireCooldown = true;
+    private static boolean requireCrosshairOnPlayer = true;
     private static boolean clickWhenAimingAtBlocks = false;
     private static final Set<String> allowedServers = new HashSet<>();
 
@@ -128,7 +131,15 @@ public class PvpTestClickerClient implements ClientModInitializer {
         if (mc.gui.screen() != null) return;
         if (!player.isAlive() || player.isSpectator() || player.isUsingItem()) return;
 
-        if (!anotherPlayerInRange(mc, player)) return;
+        if (requireCrosshairOnPlayer) {
+            // Only click when the crosshair is actually on another player who is within range.
+            if (!(mc.hitResult instanceof EntityHitResult hit)) return;
+            if (!(hit.getEntity() instanceof Player target)) return;
+            if (target == player || !target.isAlive() || target.isSpectator()) return;
+            if (player.distanceTo(target) > detectionRange) return;
+        } else if (!anotherPlayerInRange(mc, player)) {
+            return; // looser mode: any other player within range
+        }
 
         // Don't mine or break blocks by accident.
         if (!clickWhenAimingAtBlocks && mc.hitResult != null
@@ -193,6 +204,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
             detectionRange = 4.0f;
         }
         requireCooldown = Boolean.parseBoolean(props.getProperty("requireCooldown", "true"));
+        requireCrosshairOnPlayer = Boolean.parseBoolean(props.getProperty("requireCrosshairOnPlayer", "true"));
         clickWhenAimingAtBlocks = Boolean.parseBoolean(props.getProperty("clickWhenAimingAtBlocks", "false"));
 
         allowedServers.clear();
@@ -208,6 +220,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
         Properties props = new Properties();
         props.setProperty("detectionRange", Float.toString(detectionRange));
         props.setProperty("requireCooldown", Boolean.toString(requireCooldown));
+        props.setProperty("requireCrosshairOnPlayer", Boolean.toString(requireCrosshairOnPlayer));
         props.setProperty("clickWhenAimingAtBlocks", Boolean.toString(clickWhenAimingAtBlocks));
         props.setProperty("allowedServers", String.join(",", allowedServers));
 

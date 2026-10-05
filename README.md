@@ -16,6 +16,7 @@ the game handles the click as if you pressed the button. You still aim; it never
 
 ## Config (`.minecraft/config/pvptestclicker.properties`)
 - detectionRange: blocks (also changed with the keys)
+- requireCrosshairOnPlayer: true (default) only clicks while your crosshair is on another player within range; false clicks whenever any player is within range, wherever you're aiming
 - requireCooldown: true waits for the attack cooldown before each click; false clicks every tick
 - clickWhenAimingAtBlocks: false (default) skips the click while your crosshair is on a block, so it can't mine or break builds
 - allowedServers: comma-separated addresses, e.g. localhost,127.0.0.1,my-dev-server.local
