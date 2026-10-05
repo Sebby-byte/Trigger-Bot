@@ -20,6 +20,8 @@ the game handles the click as if you pressed the button. You still aim; it never
 - clickWhenAimingAtBlocks: false (default) skips the click while your crosshair is on a block, so it can't mine or break builds
 - allowedServers: comma-separated addresses, e.g. localhost,127.0.0.1,my-dev-server.local
 
+Note: the click is a left mouse click, so it assumes Attack is on the default left mouse button.
+
 Only use this where automated clicking is explicitly permitted. Most public servers prohibit it.
 
 Needs: Minecraft 26.3, Fabric Loader 0.19.5+, Fabric API 0.161.0+26.3, Java 25.

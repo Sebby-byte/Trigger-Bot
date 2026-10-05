@@ -136,8 +136,8 @@ public class PvpTestClickerClient implements ClientModInitializer {
 
         if (requireCooldown && player.getAttackStrengthScale(0.5f) < MIN_ATTACK_STRENGTH) return;
 
-        // Just a click: press the Attack key once. The game does the rest, like a real mouse click.
-        KeyMapping.click(mc.options.keyAttack.getKey());
+        // Just a click: press the left mouse button once (the default Attack key). The game does the rest.
+        KeyMapping.click(InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_LEFT));
     }
 
     private static boolean anotherPlayerInRange(Minecraft mc, LocalPlayer self) {
