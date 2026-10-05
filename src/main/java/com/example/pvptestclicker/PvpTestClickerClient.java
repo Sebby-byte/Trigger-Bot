@@ -14,14 +14,12 @@ import com.mojang.blaze3d.platform.InputConstants;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -31,15 +29,18 @@ import net.fabricmc.loader.api.FabricLoader;
 /**
  * Developer tool for testing PvP mechanics (hit detection, reach, knockback, custom weapons).
  *
- * While enabled, it performs a normal click (attack if your crosshair is on something, otherwise
- * a swing) whenever ANOTHER PLAYER is within the detection range. Aim is still yours: it never
- * turns your camera or picks targets for you, so it tests exactly what a held mouse button would.
+ * While enabled, it simulates a press of your Attack key (the left mouse click) whenever ANOTHER
+ * PLAYER is within the detection range. It sends no attack commands of its own: the game handles
+ * the click exactly as if you had pressed the button, so whatever your crosshair is on is what
+ * gets hit. It never turns your camera or picks targets for you.
  *
  * Safeguards, by design:
  *  - Always allowed in singleplayer.
  *  - On multiplayer it only runs on servers listed in "allowedServers" in
  *    config/pvptestclicker.properties (default: localhost only). Anywhere else it refuses to turn on.
  *  - Starts OFF every launch.
+ *  - By default it does not click while your crosshair is on a block, so a click can't mine or
+ *    break your builds (set clickWhenAimingAtBlocks=true to change that).
  *
  * Only use it where automated clicking is explicitly permitted. Most public servers prohibit it.
  */
@@ -54,6 +55,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
     // config (persisted)
     private static float detectionRange = 4.0f;
     private static boolean requireCooldown = true;
+    private static boolean clickWhenAimingAtBlocks = false;
     private static final Set<String> allowedServers = new HashSet<>();
 
     private static boolean enabled = false;
@@ -122,22 +124,20 @@ public class PvpTestClickerClient implements ClientModInitializer {
             return;
         }
 
-        MultiPlayerGameMode gameMode = mc.gameMode;
-        if (gameMode == null) return;
-
         // Don't act while a menu/chat is open, while dead/spectating, or while eating/blocking.
         if (mc.gui.screen() != null) return;
         if (!player.isAlive() || player.isSpectator() || player.isUsingItem()) return;
 
         if (!anotherPlayerInRange(mc, player)) return;
 
+        // Don't mine or break blocks by accident.
+        if (!clickWhenAimingAtBlocks && mc.hitResult != null
+                && mc.hitResult.getType() == HitResult.Type.BLOCK) return;
+
         if (requireCooldown && player.getAttackStrengthScale(0.5f) < MIN_ATTACK_STRENGTH) return;
 
-        // A normal click: hit whatever the crosshair is on, otherwise just swing.
-        if (mc.hitResult instanceof EntityHitResult hit) {
-            gameMode.attack(player, hit.getEntity());
-        }
-        player.swing(InteractionHand.MAIN_HAND);
+        // Just a click: press the Attack key once. The game does the rest, like a real mouse click.
+        KeyMapping.click(mc.options.keyAttack.getKey());
     }
 
     private static boolean anotherPlayerInRange(Minecraft mc, LocalPlayer self) {
@@ -193,6 +193,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
             detectionRange = 4.0f;
         }
         requireCooldown = Boolean.parseBoolean(props.getProperty("requireCooldown", "true"));
+        clickWhenAimingAtBlocks = Boolean.parseBoolean(props.getProperty("clickWhenAimingAtBlocks", "false"));
 
         allowedServers.clear();
         for (String entry : props.getProperty("allowedServers", "localhost,127.0.0.1").split(",")) {
@@ -207,6 +208,7 @@ public class PvpTestClickerClient implements ClientModInitializer {
         Properties props = new Properties();
         props.setProperty("detectionRange", Float.toString(detectionRange));
         props.setProperty("requireCooldown", Boolean.toString(requireCooldown));
+        props.setProperty("clickWhenAimingAtBlocks", Boolean.toString(clickWhenAimingAtBlocks));
         props.setProperty("allowedServers", String.join(",", allowedServers));
 
         try (OutputStream out = Files.newOutputStream(configPath())) {
